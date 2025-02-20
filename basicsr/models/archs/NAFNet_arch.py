@@ -173,10 +173,28 @@ class NAFNet(nn.Module):
 
         x = self.middle_blks(x)
 
-        for decoder, up, enc_skip in zip(self.decoders, self.ups, encs[::-1]):
-            x = up(x)
-            x = x + enc_skip
-            x = decoder(x)
+        # for decoder, up, enc_skip in zip(self.decoders, self.ups, encs[::-1]):
+        #     x = up(x)
+        #     x = x + enc_skip
+        #     x = decoder(x)
+
+        # Unrolling loop to be able to run torch.jit
+
+        x = self.ups[0](x)
+        x += encs[3]  # Accessing reversed list appropriately
+        x = self.decoders[0](x)
+
+        x = self.ups[1](x)
+        x += encs[2]
+        x = self.decoders[1](x)
+
+        x = self.ups[2](x)
+        x += encs[1]
+        x = self.decoders[2](x)
+
+        x = self.ups[3](x)
+        x += encs[0]
+        x = self.decoders[3](x)
 
         x = self.ending(x)
         x = x + inp
